@@ -1,0 +1,267 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Transactions
+{% endblock %}
+
+{% block main %}
+<h1>Transactions</h1>
+<div class="month centered-div" style="gap:60px;">
+    <form class="{% if show_all == 1 %}hide{% endif %}" action="/change_month" method="post">
+        <input type="hidden" name="month" value='back'>
+        <button class="arrow btn btn-dark"><</button>
+    </form>
+    <h2>{% if show_all == 1 %}All {% else %}{{ month_name }} {{ selected_year }}{% endif %}</h2>
+    <form class="{% if show_all == 1 %}hide{% endif %}" action="/change_month" method="post">
+        <input type="hidden" name="month" value='forward'>
+        <button class="arrow btn btn-dark">></button>
+    </form>
+</div>
+<div class="centered-div">
+    <form class="form-inline" id="toggle_all_transactions_form" action="/toggle_all_transactions" method="post">
+        <label class="form-inline" for="toggle_all_transactions">Show transactions from all months: </label>
+        <input class="checkbox" type="checkbox" name="toggle_all_transactions" id="toggle_all_transactions" {% if show_all == 1 %}checked{% endif %}>
+    </form>
+</div>
+<div class="centered-div">
+    <form class="form-inline" id="toggle_warn_delete_form" action="/toggle_warn_delete" method="post">
+        <label class="form-inline" for="toggle_warn_delete">Prompt for confirmation on delete: </label>
+        <input class="checkbox" type="checkbox" name="toggle_warn_delete" id="toggle_warn_delete" {% if warn_delete == 1 %}checked{% endif %}>
+    </form>
+</div>
+<button id="add_transaction_button" class="btn btn-primary" type="submit">+</button>
+<span class="ms-2">Add transaction</span>
+<div id="add_transaction_div">
+    <form id="add_transaction_form" action="/transactions" method="post">
+        <div id="fieldset_container"></div>
+        <!--Start as hidden-->
+        <button style="float:right; display:none;" id="submit_transactions_button" class="btn btn-primary" type="submit">Add</button>
+    </form>
+</div>
+<br>
+<div class="centered-div">
+    <table class="table">
+        <thead>
+            <th></th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Category</th>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+                {% set day = transaction['day'] %}
+                {% set month = transaction['month'] %}
+                {% set year = transaction['year'] %}
+                {% set description = transaction['description'] %}
+                {% set amount = transaction['amount'] %}
+                {% set categoryName = transaction['category_name'] %}
+                {% set categoryId = transaction['category_id'] %}
+                {% set categoryType = transaction['category_type'] %}
+                {% set transactionId = transaction['id'] %}
+
+                {% if day < 10 %}
+                    {% set day = '0' ~ day %}
+                {% endif %}
+                <tr>
+                    <td>
+                        <form action="delete_transaction" method="post" onsubmit="return confirmDelete()">
+                            <input type="hidden" name="transaction" value='{{ transactionId }}'>
+                            <button class="delete btn btn-sm btn-danger" type="submit">Delete</button>  
+                        </form>
+                    </td>
+                    <td class="editable" id="date_{{ transactionId }}" onclick="edit('date_{{ transactionId }}', '{{ transactionId }}', 'date')">{{ month }}/{{ day }}/{{ year }}</td>
+                    <td class="editable" id="description_{{ transactionId }}" onclick="edit('description_{{ transactionId }}', '{{ transactionId }}', 'description')">{{ description }}</td>
+                    <td class="editable {% if categoryType == 'income' %}income_text{% elif categoryType == 'expense' %}expense_text{% endif %}" id="amount_{{ transactionId }}" onclick="edit('amount_{{ transactionId }}', '{{ transactionId }}', 'amount')">${{ "{:,.2f}".format(amount) }}</td>
+                    <td class="editable {% if categoryType == 'income' %}table-success{% elif categoryType == 'expense' %}table-danger{% endif %}" id="category_{{ transactionId }}" onclick="edit('category_{{ transactionId }}', '{{ transactionId }}', 'category')">{{ categoryName }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    const show_all_checkbox = document.getElementById("toggle_all_transactions");
+    show_all_checkbox.addEventListener('change', function() {
+        document.getElementById("toggle_all_transactions_form").submit();
+    })
+
+    const warn_delete_checkbox = document.getElementById("toggle_warn_delete");
+    warn_delete_checkbox.addEventListener('change', function() {
+        document.getElementById("toggle_warn_delete_form").submit();
+    })
+</script>
+
+<script>
+    function confirmDelete(categoryName) {
+        let warn_delete = "{{ warn_delete }}";
+        rememberScrollPosition();
+        if (warn_delete == 0) {
+            return true;
+        }
+        return confirm('Are you sure you want to delete this transaction?');
+    }
+</script>
+<script>
+
+    let id = 1;
+
+    function createTransactionFieldSet(){
+        const fieldset = document.createElement("fieldset");
+        
+        let categories = "{{ categories }}";
+
+        //if (selectedMonth < 10) {
+        //    selectedMonth = "0" + selectedMonth;
+        //};
+
+        //let lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+        //let firstDayOfMonth = "01";
+
+        //limit date to the current month/year
+        //<input max="${selectedYear}-${selectedMonth}-${lastDayOfMonth}" min="${selectedYear}-${selectedMonth}-${firstDayOfMonth}" name="date" type="date" required>
+        fieldset.name = "fieldset_" + id;
+        fieldset.classList = "form-inline";
+        fieldset.innerHTML = `
+            <button class="delete_fieldset_button btn btn-sm btn-danger">Remove</button>
+            <label class="form-inline" for="date">Date: </label>
+            <input class="form-control" name="date" type="date" required>
+            <label class="form-inline" for="description">Description: </label>
+            <input autocomplete="on" class="form-control" maxlength="50" size="50" name="description" type="text" placeholder="Description (max 50)" required>
+        
+            <label class="form-inline" for="amount">Amount ($): </label>
+            <input autocomplete="off" class="form-control" name="amount" type="number" step="0.01" min="0" max="99999" required>
+
+            <label class="form-inline" for="category">Category: </label>
+            <select class="form-control" name="category" required>
+                <option value="">Select</option>
+                {% for category in categories %}
+                    <option class="{{category['categorytype']}}_option" value={{ category['id'] }}>{{ category['name'] }}</option>
+                {% endfor %}
+            </select>
+        `;
+        
+        id += 1;
+
+        const button = document.getElementById("submit_transactions_button");
+        if (button) {
+            button.style.display = "block";
+        }
+
+        //add fieldset to form container
+        document.getElementById("fieldset_container").appendChild(fieldset);
+
+        //delete button functionality
+        const deleteButton = fieldset.querySelector(".delete_fieldset_button");
+        deleteButton.addEventListener("click", function() {
+            fieldset.remove();
+
+            const number_of_fieldsets = document.getElementById("fieldset_container").querySelectorAll("fieldset").length;
+            if (number_of_fieldsets == 0) {
+                const button = document.getElementById("submit_transactions_button");
+                if (button) {
+                    button.style.display = "none";
+                }
+            }
+        })
+    }
+    document.getElementById("add_transaction_button").addEventListener("click", createTransactionFieldSet)
+</script>
+
+<script>
+    let currentElement = null;
+    let oldInnerHTML = null;
+
+    function cancelEdit(element, html) {
+        if (!element && !html) {
+            if (currentElement && oldInnerHTML) {
+                currentElement.innerHTML = oldInnerHTML
+                currentElement = null;
+                oldInnerHTML = null;
+            }
+            return;
+        }
+        element.innerHTML = html
+    }
+    document.addEventListener('click', function(event) {
+        if (currentElement && !currentElement.contains(event.target)) {
+            cancelEdit();
+        }
+    })
+
+    function edit(elementId, transactionId, field) {
+        let element = document.getElementById(elementId)
+        if (!element) {
+            return;
+        }
+
+        // Check if an input field already exists
+        if (element.querySelector('input')) {
+            return;
+        }
+
+        // Check if there's already another element being editted, and if so cancel the edit
+        if (currentElement && oldInnerHTML) {
+            cancelEdit(currentElement, oldInnerHTML);
+        }
+        currentElement = element
+        oldInnerHTML = element.innerHTML
+
+        // Replace current td with an input field
+        if (field == 'date') {
+            element.innerHTML = `
+            <form class="form-inline" action="/update_transaction_date" method="post" onsubmit="rememberScrollPosition()">
+                <input type="hidden" name="transaction" value="${transactionId}">
+                <input class="form-control" name="date" type="date" value="" required>
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </form>
+        `;
+        } else if (field == 'description') {
+            element.innerHTML = `
+            <form class="form-inline" action="/update_transaction_description" method="post" onsubmit="rememberScrollPosition()">
+                <input type="hidden" name="transaction" value="${transactionId}">
+                <input autocomplete="on" class="form-control" maxlength="50" size="50" name="description" type="text" placeholder="${oldInnerHTML}" value="${oldInnerHTML}">
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </form>
+        `;
+        } else if (field == 'amount') {
+            // Reference: Used ChatGPT, asking it how to strip the $ symbol from the old innerHTML
+            let sanitizedValue = oldInnerHTML.replace(/^\$/, '');
+
+            element.innerHTML = `
+            <form class="form-inline" action="/update_transaction_amount" method="post" onsubmit="rememberScrollPosition()">
+                <input type="hidden" name="transaction" value="${transactionId}">
+                <input autocomplete="off" class="form-control" name="amount" type="number" min="0" max="99999" placeholder="${sanitizedValue}">
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </form>
+        `;
+        } else if (field == 'category') {
+            let categories = "{{ categories }}";
+            
+            element.innerHTML = `
+            <form class="form-inline" action="update_transaction_category" method="post" onsubmit="rememberScrollPosition()">
+                <input type="hidden" name="transaction" value="${transactionId}">
+                <select class="form-control" name="category" required>
+                    <option value="">Select</option>
+                {% for category in categories %}
+                    <option class="{{category['categorytype']}}_option" value={{ category['id'] }}>{{ category['name'] }}</option>
+                {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-secondary">Save</button>
+            </form>
+        `;
+        }
+    }
+</script>
+
+<script>
+    // References:
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTo
+    // https://teamtreehouse.com/community/anyone-know-how-to-restore-users-scroll-position-on-a-specific-page-after-visiting-other-pages
+    // https://developer.mozilla.org/en-US/docs/Web/API/Storage/removeItem
+
+    function rememberScrollPosition() {
+        localStorage.setItem("scrollPosition2", window.scrollY);
+    }
+</script>
+
+{% endblock %}

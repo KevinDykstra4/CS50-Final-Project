@@ -1,0 +1,144 @@
+nav {
+    background-color: rgb(98, 0, 255);
+    height: 60px;
+    position: sticky !important;
+    top: 0px;
+}
+
+.nav-link {
+    font-size: larger;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: aliceblue;
+    padding: 0 15px;
+}
+
+.nav-link:hover, nav .navbar-brand:hover {
+    color: cornsilk;
+    text-decoration-line: underline;
+    text-decoration-thickness: 3px;
+}
+
+nav .navbar-brand
+{
+    font-size: xx-large;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color:aliceblue;
+    padding: 0 15px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.month {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 50%;
+    margin: auto;
+    margin-bottom: 3rem;
+}
+
+th, td {
+    width: 20%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    min-width: 100px;
+    padding: 8px;
+    text-wrap:wrap;
+
+}
+
+.centered-div {
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+}
+
+table {
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+}
+
+th:first-child, td:first-child {
+    width: 10%;
+    min-width: 120px;
+}
+
+.disposable_income, .expenditures {
+    margin-bottom: 3rem;
+}
+
+.editable {
+    cursor:pointer;
+}
+
+/*Reference: https://www.w3schools.com/css/css3_transitions.asp*/
+.editable:hover {
+    font-size: 16.5px;
+    /*transform: scale(1.1);*/
+}
+
+.income_option {
+    background-color:#adeebf;
+}
+
+.expense_option {
+    background-color:indianred;
+}
+
+.income_text {
+    color:#00af32 !important;
+    font-size: 17px;
+}
+
+.expense_text {
+    color:rgb(209, 0, 0) !important;
+    font-size: 17px;
+}
+
+.form-inline {
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    gap: 10px;
+}
+
+.hide {
+    display: none;
+}
+
+.progress_holder {
+    height: 8px;
+    background-color: rgb(255,255,255);
+    border: 0.5px solid black;
+    border-radius: 5px;
+    width:90%;
+    margin: 0 auto;    
+}
+
+.progress_bar {
+    height: 100%;
+    background-color: red;
+    border: 0.5px solid black;
+    border-radius: 5px;
+}
+
+.progress_label {
+    font-size:smaller; 
+    text-align: right;
+}

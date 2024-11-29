@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Uploaded Transactions
+{% endblock %}
+
+{% block main %}
+<h1>Map Your Transactions</h1>
+<h2 class="text-center">1. Please match the CSV headers below to the corresponding fields</h2>
+<p class="text-center">To ensure your data imports correctly, type the CSV header names that you have used in the file. Make sure each header is aligned with the corresponding field in our system.</p>
+<br>
+<form action="add_csv_transactions" method="post">
+    <fieldset class="centered-div">
+        <label for="date_header_name">Date:</label>
+        <!--
+        <input autocomplete="off" class="form-control" name="date_header_name" placeholder="eg. Transaction Date" required type="text" value="Transaction Date">
+        -->
+        <select class="form-control" name="date_header_name" required>
+            <option value=""></option>
+            {% for head in reader[0].keys() %}
+            <option value="{{ head }}">{{ head }}</option>
+            {% endfor %}
+        </select>
+        <label for="description_header_name">Description: </label>
+        <!--
+        <input autocomplete="off" class="form-control" name="description_header_name" placeholder="eg. Description" required type="text" value="Description 1">
+        -->
+        <select class="form-control" name="description_header_name" required>
+            <option value=""></option>
+            {% for head in reader[0].keys() %}
+            <option value="{{ head }}">{{ head }}</option>
+            {% endfor %}
+        </select>
+        <label for="amount_header_name">Amount: </label>
+        <!--
+        <input autocomplete="off" class="form-control" name="amount_header_name" placeholder="eg. USD$" required type="text" value="CAD$">
+        -->
+        <select class="form-control" name="amount_header_name" required>
+            <option value=""></option>
+            {% for head in reader[0].keys() %}
+            <option value="{{ head }}">{{ head }}</option>
+            {% endfor %}
+        </select>
+
+        
+    </fieldset>
+    <br>
+    <h2 class="text-center">2. Please review each imported transaction below</h2>
+    <p class="text-center">Remove any transactions you don't wish to be imported. Note that when imported, the transactions will show up in the "Transactions" tab based on the current-selected month.</p>
+    
+    <div class="centered-div" style="position: sticky; top: 65px;">
+        <button type="submit" class="btn btn-success">Submit</button>
+    </div>
+
+    <fieldset class="centered-div">
+            <table class="table table-striped">
+                <thead>
+                    <th></th>
+                    {% for head in reader[0].keys() %}
+                        <th>{{head}}</th>
+                    {% endfor %}
+                    <th>Category</th>
+                </thead>
+                <tbody>
+                    {% for row in reader %}
+                        {% set rowIndex = loop.index0 %}
+                        <tr id="row{{ rowIndex }}">
+                            <td>
+                                <!--type="button" to make sure it doesnt submit form when clicked-->
+                                <button type="button" class="delete btn btn-sm btn-danger" onclick="deleteRow('row{{ rowIndex }}')" style="width:100%;" >X</button>
+                            </td>
+                            {% for key, value in row.items() %}
+                                <td>
+                                    <input type="hidden" name="transactions[{{ rowIndex }}][{{ key }}]" value="{{ value }}">
+                                    {{ value }}
+                                </td>
+                            {% endfor %}
+                            <td>
+                                <!--Setting category not currently required-->
+                                <select name="transactions[{{ rowIndex }}][category]" style="width:100%;">
+                                    <option value=""></option>
+                                    {% for category in categories %}
+                                        <option class="{{category['categorytype']}}_option" value="{{ category['id'] }}">{{ category['name'] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+    </fieldset>
+    <br>
+</form>
+
+<script>
+    function deleteRow(rowId) {
+        const element = document.getElementById(rowId)
+        if (element) {
+            element.remove();
+        }
+    }
+
+</script>
+
+{% endblock %}

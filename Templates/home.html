@@ -1,0 +1,303 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+    <h1>Budget Summary</h1>
+    <div class="month centered-div" style="gap:60px;">
+        <form action="/change_month" method="post" onsubmit="rememberScrollPosition()">
+            <input type="hidden" name="month" value='back'>
+            <button class="arrow btn btn-dark"><</button>
+        </form>
+        <h2>{{ month_name }} {{ selected_year }}</h2>
+        <form action="/change_month" method="post" onsubmit="rememberScrollPosition()">
+            <input type="hidden" name="month" value='forward'>
+            <button class="arrow btn btn-dark">></button>
+        </form>
+    </div>
+
+    {% set profit = income_total - expense_total %}
+    <h3 class="text-center">Profit (Loss): <span class ="{% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">${{ "{:,.2f}".format(profit) }}</span></h3>
+    
+    {% if unassigned_total > 0 %}
+    <hr>
+    <h5>Unassigned transactions: ${{ "{:,.2f}".format(unassigned_total) }}*</h5>
+    <p><i>*There are some transactions that don't have categories assigned to them for this month. Please review them in the <a href="/transactions">Transactions</a> page.</i></p>
+    <hr>
+    {% endif %}
+    
+    <div class="disposable_income">
+        <h3>Net Disposable Income: ${{ "{:,.2f}".format(income_total) }}</h3>
+        <button id="add_income_button" class="btn btn-primary" type="submit">+</button>
+        <span class="ms-2">Add category</span>
+        
+        <!--placeholder for form-->
+        <div id="add_income_form"></div>
+        <table class="table table-striped">
+            <thead>
+                <th></th>
+                <th>Category</th>
+                <th>Earned</th>
+                <th>Goal</th>
+                <th>To Reach</th>
+            </thead>
+            <tbody>
+            {% for category in income_categories %}
+                {% set categoryName = category["name"] %}
+                {% set categoryId = category["id"] %}
+                {% set categoryType = category["categorytype"] %}
+                {% set categoryTotal = category_totals[categoryId] %}
+                <tr>
+                    <td>
+                        <form action="/delete_category" method="post" onsubmit="return confirmDelete('{{ categoryName }}');">
+                            <input type="hidden" name="category" value='{{ category["id"] }}'>
+                            <button class="delete btn btn-sm btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                    <td class="editable" id ="category_name_{{ categoryId }}" onclick="edit('category_name_{{ categoryId }}', '{{ categoryId }}', 'name')">{{ category["name"] }}</td>
+                    <td>${{ "{:,.2f}".format(categoryTotal) }}</td>
+
+                    {% set categoryBudget = category_budgets[categoryId] | default(0) %}
+
+                    <td class="editable" id ="budget_value_{{ categoryId }}" onclick="edit('budget_value_{{ categoryId }}', '{{ categoryId }}', 'budget')">${{ "{:,.2f}".format(categoryBudget) }}</td>
+                    {% set remaining = categoryBudget - categoryTotal %}
+                    <td class="{% if remaining < 0 %}text-success{% elif remaining > 0 %}text-danger{% endif %}">
+                        ${{ "{:,.2f}".format(remaining) }}
+                    </td>
+                </tr>
+                <tr>
+                    {% set progress = 100 %}
+                    {% if categoryBudget != 0 %}
+                        {% set progress = (categoryTotal / categoryBudget)*100 %}
+                    {% endif %}
+                    {% set progressWidth = progress %}
+                    {% if progressWidth > 100 %}
+                        {% set progressWidth = 100 %}
+                    {% endif %}
+                    {% set progress = "{:.0f}".format(progress) %}
+                    <td></td>
+                    <td class="progress_label">{{ progress }}%</td>
+                    <td style="vertical-align: middle;" colspan="3">
+                        <!--REFERENCE: https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes-->
+                        <div class="progress_holder" data-progressWidth="{{ progressWidth }}" data-categoryType="{{ categoryType }}">
+                            <!--<div class="progress_bar" style="width: {{ progressWidth }}%;"></div>-->
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="expenditures">
+        <h3>Total Expenditures: ${{ "{:,.2f}".format(expense_total) }}</h3>
+        <button id="add_expense_button" class="btn btn-primary" type="submit">+</button>
+        <span class="ms-2">Add category</span>
+
+        <!--placeholder for form-->
+        <div id="add_expense_form"></div>
+        <table class="table table-striped">
+            <thead>
+                <th></th>
+                <th>Category</th>
+                <th>Spent</th>
+                <th>Budget</th>
+                <th>Remaining</th>
+            </thead>
+            <tbody>
+            {% for category in expense_categories %}
+                {% set categoryName = category["name"] %}
+                {% set categoryId = category["id"] %}
+                {% set categoryTotal = category_totals[categoryId] %}
+                {% set categoryType = category["categorytype"] %}
+                <tr>
+                    <td>
+                        <form action="/delete_category" method="post" onsubmit="return confirmDelete('{{ categoryName }}');">
+                            <input type="hidden" name="category" value='{{ category["id"] }}'>
+                            <button class=" delete btn btn-sm btn-danger" type="submit">Delete</button>
+                        </form>
+                    </td>
+                    <td class="editable" id ="category_name_{{ categoryId }}" onclick="edit('category_name_{{ categoryId }}', '{{ categoryId }}', 'name')">{{ category["name"] }}</td>
+                    <td>${{ "{:,.2f}".format(categoryTotal) }}</td>
+
+                    {% set categoryBudget = category_budgets[categoryId] | default(0) %}
+
+                    <td class="editable" id ="budget_value_{{ categoryId }}" onclick="edit('budget_value_{{ categoryId }}', '{{ categoryId }}', 'budget')">${{ "{:,.2f}".format(categoryBudget) }}</td>
+                    {% set remaining = categoryBudget - categoryTotal %}
+                    <td class="{% if remaining > 0 %}text-success{% elif remaining < 0 %}text-danger{% endif %}">
+                        ${{ "{:,.2f}".format(remaining) }}
+                    </td>
+                </tr>
+                <tr>
+                    {% set progress = 100 %}
+                    {% if categoryBudget != 0 %}
+                        {% set progress = (categoryTotal / categoryBudget)*100 %}
+                    {% endif %}
+                    {% set progressWidth = progress %}
+                    {% if progressWidth > 100 %}
+                        {% set progressWidth = 100 %}
+                    {% endif %}
+                    {% set progress = "{:.0f}".format(progress) %}
+                    <td></td>
+                    <td class="progress_label">{{ progress }}%</td>
+                    <td style="vertical-align: middle;" colspan="3">
+                        <!--REFERENCE: https://developer.mozilla.org/en-US/docs/Learn/HTML/Howto/Use_data_attributes-->
+                        <div class="progress_holder" data-progressWidth="{{ progressWidth }}" data-categoryType="{{ categoryType }}">
+                            <!--<div class="progress_bar" style="width: {{ progressWidth }}%;"></div>-->
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function createProgressBars() {
+            const progressHolders = document.querySelectorAll(".progress_holder");
+
+            progressHolders.forEach(function(holder) {
+                const progressWidth = holder.getAttribute("data-progressWidth");
+                const categoryType = holder.getAttribute("data-categoryType")
+                // REFERENCE: https://stackoverflow.com/questions/7128675/from-green-to-red-color-depend-on-percentage
+                let hue;
+                if (categoryType == "income") {
+                    hue = ((progressWidth / 100) * 120);
+                } else {
+                    hue = (120 - (progressWidth / 100) * 120);
+                }
+
+                const bar = document.createElement("div");
+                bar.classList = "progress_bar";
+                bar.style.width = progressWidth + "%";
+                bar.style.backgroundColor = "hsl(" + hue + ",100%,50%)";
+                holder.appendChild(bar);
+
+                if (progressWidth == 0) {
+                    holder.style.display = "none";
+                }
+            })
+        }
+        createProgressBars();
+    </script>
+
+    <script>
+        let currentElement = null;
+        let oldInnerHTML = null;
+
+        function cancelEdit(element, html) {
+            if (!element && !html) {
+                if (currentElement && oldInnerHTML) {
+                    currentElement.innerHTML = oldInnerHTML
+                    currentElement = null;
+                    oldInnerHTML = null;
+                }
+                return;
+            }
+            element.innerHTML = html
+        }
+        document.addEventListener('click', function(event) {
+            if (currentElement && !currentElement.contains(event.target)) {
+                cancelEdit();
+            }
+        })
+
+        function edit(elementId, categoryId, field) {
+            let element = document.getElementById(elementId);
+            if (!element) {
+                return;
+            }
+
+            // Check if an input field already exists
+            if (element.querySelector('input')) {
+                return;
+            }
+
+            // Check if there's already another element being editted, and if so cancel the edit
+            if (currentElement && oldInnerHTML) {
+                cancelEdit(currentElement, oldInnerHTML);
+            }
+            currentElement = element
+            oldInnerHTML = element.innerHTML
+       
+            // Replace current td with an input field
+            if (field == 'budget') {
+                element.innerHTML = `
+                <form class="form-inline" id="edit_budget_form${categoryId}" action="/update_budget" method="post" onsubmit="rememberScrollPosition()">
+                    <input type="hidden" name="category_id" value="${categoryId}">
+                    <input autocomplete="off" class="form-control" id="budget_input_${categoryId}" name="budget_amount" min="0" placeholder="${oldInnerHTML}" style="text-center;" type="number" step="0.01">
+                    <button type="submit" class="btn btn-secondary">Save</button>
+                </form>
+            `;
+            } else if (field == 'name') {
+                element.innerHTML = `
+                <form class="form-inline" id="edit_budget_form${categoryId}" action="/update_name" method="post" onsubmit="rememberScrollPosition()">
+                    <input type="hidden" name="category_id" value="${categoryId}">
+                    <input autocomplete="off" class="form-control" id="budget_input_${categoryId}" name="name" placeholder="${oldInnerHTML}" style="text-center;" type="text" value="${oldInnerHTML}">
+                    <button type="submit" class="btn btn-secondary">Save</button>
+                </form>  
+            `;
+            }
+        }
+    </script>
+    
+    <script>
+        function confirmDelete(categoryName) {
+            rememberScrollPosition();
+            return confirm('Are you sure you want to delete the "'+ categoryName +'" category?');
+        }
+    </script>
+
+    <script>
+        function toggleForm(buttonId, formId, categoryType){
+            let formCreated = false;
+
+            document.getElementById(buttonId).addEventListener("click", function() {
+                if (formCreated) {
+                    //Delete the current form
+                    document.getElementById(formId).innerHTML = "";
+                    document.getElementById(buttonId).innerHTML = "+"
+                    formCreated = false;
+                    return;
+                }
+
+                //Create a new form
+                formCreated = true;
+                const form = document.createElement("form");
+                form.action = "/create_category";
+                form.method = "post";
+                form.classList = "form-inline";
+                
+                let budgetPreText = (categoryType == "income" && "Goal: ") || "Budget: ";
+
+                form.innerHTML = `
+                    <label class="form-inline" for="${categoryType}_category">Name: </label>
+                    <input autocomplete="off" class="form-control" name="${categoryType}_category" placeholder="Category name" required type="text">
+                    <label class="form-inline" for="starting_budget">${budgetPreText}</label>
+                    <input autocomplete="off" class="form-control" name="starting_budget" min="0" placeholder="100" required type="number" step="0.01">
+                    <button class="btn btn-primary" type="submit">Add</button>
+                `;
+            
+                document.getElementById(formId).appendChild(form);
+                document.getElementById(buttonId).innerHTML = "-";
+            })
+        }
+        toggleForm("add_income_button", "add_income_form", "income")
+        toggleForm("add_expense_button", "add_expense_form", "expense")
+    </script>
+
+    <script>
+        // References:
+        // https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTo
+        // https://teamtreehouse.com/community/anyone-know-how-to-restore-users-scroll-position-on-a-specific-page-after-visiting-other-pages
+        // https://developer.mozilla.org/en-US/docs/Web/API/Storage/removeItem
+
+        function rememberScrollPosition() {
+            localStorage.setItem("scrollPosition", window.scrollY);
+        }
+    </script>
+
+    
+{% endblock %}

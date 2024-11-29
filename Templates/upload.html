@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    CSV Upload
+{% endblock %}
+
+{% block main %}
+    <h1>CSV File Upload</h1>
+    <div class="text-center">
+        <h3>Upload a CSV file of your bank statement for a given month</h3>
+        <br>
+        <form action="/upload" class="form-inline" method="post" enctype="multipart/form-data">
+            <input class="form-control" style="width:35%;" name = "csv" type="file" accept=".csv">
+            <div>
+                <button class="btn btn-primary" type="submit">Upload</button>
+            </div>
+
+        </form>
+    </div>
+
+
+{% endblock %}
