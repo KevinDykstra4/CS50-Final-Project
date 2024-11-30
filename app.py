@@ -21,7 +21,7 @@ def login_required(f):
     return decorated_function
 
 # Configure application
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__, template_folder='templates', static_folder="static")
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
