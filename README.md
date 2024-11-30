@@ -1,5 +1,5 @@
 # BUDGET WEB APP
-#### Video Demo:
+#### Video Demo: https://youtu.be/RqtUbqIl-RE
 #### Description:
 
 For my final project, I've created a budgetting application. In short, users are able to track how much 'profit' they've made in a given month, clearly showing them how much they're saving. What's more, users are able to upload CSV files from their bank to add transactions quickly to their profile.
